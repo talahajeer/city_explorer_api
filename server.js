@@ -5,13 +5,15 @@ const PORT = process.env.PORT;
 const express = require("express");
 const cors = require("cors");
 const superagent = require("superagent");
+const pg = require("pg");
 
 const app = express();
 app.use(cors());
+const client = new pg.Client(process.env.DATABASE_URL);
 
 app.get("/location", handleLocation);
-app.get("/weather", handleWeather);
-app.get("/parks", handlePark);
+// app.get("/weather", handleWeather);
+// app.get("/parks", handlePark);
 app.use('*', notFoundHandler);
 app.use(errorHandler);
 
@@ -54,71 +56,71 @@ function handleLocation(request, response) {
 }
 
 
-const weatherResponse = {};
-function handleWeather(request, response) {
-    let resArr = [];
-    const city = request.query.city;
-    if (weatherResponse[city]) {
-        response.send(weatherResponse[city])
-    } else {
-        let key = process.env.WEATHER_API_KEY;
-        const url = `https://api.weatherbit.io/v2.0/forecast/daily?&lat=${lat}&lon=${lon}&key=${key}`;
-        superagent.get(url).then(res => {
-            // console.log(res.body);
-            // const getWeather = require("./data/weather.json");
-            const cityWeather = res.body.data;
-            console.log(res.body.data);
-            cityWeather.forEach(item => {
+// const weatherResponse = {};
+// function handleWeather(request, response) {
+//     let resArr = [];
+//     const city = request.query.city;
+//     if (weatherResponse[city]) {
+//         response.send(weatherResponse[city])
+//     } else {
+//         let key = process.env.WEATHER_API_KEY;
+//         const url = `https://api.weatherbit.io/v2.0/forecast/daily?&lat=${lat}&lon=${lon}&key=${key}`;
+//         superagent.get(url).then(res => {
+//             // console.log(res.body);
+//             // const getWeather = require("./data/weather.json");
+//             const cityWeather = res.body.data;
+//             console.log(res.body.data);
+//             cityWeather.forEach(item => {
 
-                resArr.push({
-                    forecast: item.weather.description,
-                    time: item.valid_date
-                });
-            });
-            // console.log(weatherResponse);
-            response.send(resArr);
-        }).catch((err) => {
-            console.log("ERROR IN LOCATION API");
-            console.log(err)
-        })
-    }
+//                 resArr.push({
+//                     forecast: item.weather.description,
+//                     time: item.valid_date
+//                 });
+//             });
+//             // console.log(weatherResponse);
+//             response.send(resArr);
+//         }).catch((err) => {
+//             console.log("ERROR IN LOCATION API");
+//             console.log(err)
+//         })
+//     }
 
-}
-
-
-const parkResponse = {};
-function handlePark(request, response) {
-    let resArr = [];
-    const city = request.query.city;
-    console.log(city);
-    if (parkResponse[city]) {
-        response.send(parkResponse[city])
-    } else {
-        let key = process.env.PARKS_API_KEY;
-        const url = `https://developer.nps.gov/api/v1/parks?q=${city}&api_key=${key}&limit=10`;
-        superagent.get(url).then(res => {
-
-            const cityPark = res.body.data;
-            // console.log(cityPark);
-            cityPark.forEach(item => {
-                resArr.push({
-                    name: item.fullName,
-                    address: item.addresses[0],
-                    fees: item.fees,
-                    description:item.description,
-                    url: item.url
-                });
-            })
+// }
 
 
-            console.log(resArr);
-            response.send(resArr);
-        }).catch((err) => {
-            console.log("ERROR IN LOCATION API");
-            console.log(err)
-        })
-    }
+// const parkResponse = {};
+// function handlePark(request, response) {
+//     let resArr = [];
+//     const city = request.query.city;
+//     console.log(city);
+//     if (parkResponse[city]) {
+//         response.send(parkResponse[city])
+//     } else {
+//         let key = process.env.PARKS_API_KEY;
+//         const url = `https://developer.nps.gov/api/v1/parks?q=${city}&api_key=${key}&limit=10`;
+//         superagent.get(url).then(res => {
 
-}
+//             const cityPark = res.body.data;
+//             // console.log(cityPark);
+//             cityPark.forEach(item => {
+//                 resArr.push({
+//                     name: item.fullName,
+//                     address: item.addresses[0],
+//                     fees: item.fees,
+//                     description:item.description,
+//                     url: item.url
+//                 });
+//             })
+
+
+//             console.log(resArr);
+//             response.send(resArr);
+//         }).catch((err) => {
+//             console.log("ERROR IN LOCATION API");
+//             console.log(err)
+//         })
+//     }
+
+// }
 
 app.listen(PORT, () => console.log(`App is running on Server on port: ${PORT}`))
