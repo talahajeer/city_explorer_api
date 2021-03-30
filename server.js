@@ -11,7 +11,7 @@ app.use(cors());
 
 app.get("/location", handleLocation);
 app.get("/weather", handleWeather);
-app.get("/park", handlePark);
+// app.get("/park", handlePark);
 app.use('*', notFoundHandler);
 app.use(errorHandler);
 
@@ -22,7 +22,8 @@ function notFoundHandler(request, response) {
 function errorHandler(err, request, response, next) {
     response.status(500).send('something is wrong in server');
 }
-
+let lat = "";
+let lon = "";
 const localLocations = {};
 function handleLocation(request, response) {
     const city = request.query.city;
@@ -40,6 +41,8 @@ function handleLocation(request, response) {
                 latitude: res.body[0].lat,
                 longitude: res.body[0].lon
             }
+            lat = res.body[0].lat;
+            lon = res.body[0].lon;
             console.log(object);
             response.send(object);
         }).catch((err) => {
@@ -51,27 +54,29 @@ function handleLocation(request, response) {
 }
 
 
-const weatherResponse = [];
+const weatherResponse = {};
 function handleWeather(request, response) {
+    let resArr= [];
     const city = request.query.city;
-    if (weatherResponse) {
-        response.send(weatherResponse["city"])
+    if (weatherResponse[city]) {
+        response.send(weatherResponse[city])
     } else {
         let key = process.env.WEATHER_API_KEY;
-        const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&key=${key}`;
+        const url = `https://api.weatherbit.io/v2.0/forecast/daily?&lat=${lat}&lon=${lon}&key=${key}`;
         superagent.get(url).then(res => {
             // console.log(res.body);
             // const getWeather = require("./data/weather.json");
-            const cityWeather = res.body["data"];
-            // console.log(cityWeather);
+            const cityWeather = res.body.data;
+            console.log(res.body.data);
             cityWeather.forEach(item => {
-                weatherResponse.push({
+            
+                resArr.push({
                     forecast: item.weather.description,
                     time: item.valid_date
                 });
             });
-            console.log(weatherResponse);
-            response.send(weatherResponse);
+            // console.log(weatherResponse);
+            response.send(resArr);
         }).catch((err) => {
             console.log("ERROR IN LOCATION API");
             console.log(err)
