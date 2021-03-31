@@ -49,6 +49,7 @@ const localLocations = {};
 function handleLocation(request, response) {
     const city = request.query.city;
     // console.log(city);
+
     let key = process.env.GEOCODE_API_KEY;
 
     let SQL = `SELECT * FROM location WHERE name=${city}`;
@@ -131,9 +132,6 @@ function handleWeather(request, response) {
     });
 
 
-}
-
-
 const parkResponse = {};
 function handlePark(request, response) {
 
@@ -171,4 +169,5 @@ function handlePark(request, response) {
 
 
 }
+
 
