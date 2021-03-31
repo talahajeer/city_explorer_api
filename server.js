@@ -5,13 +5,15 @@ const PORT = process.env.PORT;
 const express = require("express");
 const cors = require("cors");
 const superagent = require("superagent");
+const pg = require("pg");
 
 const app = express();
 app.use(cors());
+const client = new pg.Client(process.env.DATABASE_URL);
 
 app.get("/location", handleLocation);
-app.get("/weather", handleWeather);
-app.get("/parks", handlePark);
+// app.get("/weather", handleWeather);
+// app.get("/parks", handlePark);
 app.use('*', notFoundHandler);
 app.use(errorHandler);
 
@@ -52,6 +54,7 @@ function handleLocation(request, response) {
     }
 
 }
+
 
 
 const weatherResponse = {};
@@ -122,5 +125,6 @@ function handlePark(request, response) {
     }
 
 }
+
 
 app.listen(PORT, () => console.log(`App is running on Server on port: ${PORT}`))
