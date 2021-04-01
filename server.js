@@ -18,9 +18,9 @@ client.connect().then(() => {
 });
 
 app.get('/', (request, response) => {
-    let name = request.query.name;
-    let SQL = 'SELECT * FROM location WHERE name=$1';
-    client.query(SQL, [name]).then(result => {
+    // let name = request.query.name;
+    let SQL = 'SELECT * FROM location;';
+    client.query(SQL).then(result => {
         response.send(result.rows);
     });
 });
@@ -31,15 +31,15 @@ app.get("/weather", handleWeather);
 app.get("/parks", handlePark);
 app.get('/movies', handleMovies);
 app.use('*', notFoundHandler);
-app.use(errorHandler);
+// app.use(errorHandler);
 
 function notFoundHandler(request, response) {
     response.status(404).send('requested API is Not Found!');
 }
 
-function errorHandler(err, request, response, next) {
-    response.status(500).send('something is wrong in server');
-}
+// function errorHandler(err, request, response, next) {
+//     response.status(500).send('something is wrong in server');
+// }
 let lat = "";
 let lon = "";
 
@@ -53,20 +53,15 @@ function handleLocation(request, response) {
 
     let key = process.env.GEOCODE_API_KEY;
 
-    let SQL = `SELECT * FROM location WHERE name=${city}`;
+    let SQL = `SELECT * FROM location WHERE name='${city}';`;
 
-    let SQLInsertion = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2, $3, $4) RETURNING *';
+    let SQLInsertion = 'INSERT INTO location (name, display_name,latitude,longitude) VALUES($1, $2, $3, $4) RETURNING *;';
 
-    client.query(SQL).then(data => {
-        data.rows.forEach(value => {
-            localLocations[value.search_query] = value;
-        });
-    });
 
-    client.query(SQL, [city]).then(result => {
+    client.query(SQL).then(result => {
         if (result.rowCount > 0) {
             // console.log(result.rows[0]);
-            response.send(localLocations[city]);
+            response.send(result.rows[0]);
         } else {
             const url = `https://eu1.locationiq.com/v1/search.php?key=${key}&q=${city}&format=json&limit=1`;
 
@@ -99,76 +94,47 @@ function handleLocation(request, response) {
 
 const weatherResponse = {};
 function handleWeather(request, response) {
-
-    const city = request.query.search_query;
+    let resArr = [];
+    const city = request.query.city;
+    // console.log(city);
     let key = process.env.WEATHER_API_KEY;
 
-    let SQLInsertion = 'INSERT INTO weather (period, forecast) VALUES($1, $2) RETURNING *';
+        const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&country=US&key=${key}`;
 
-    let SQL = `SELECT * FROM weathers WHERE period=$1`;
+        superagent.get(url).then((res) => {
 
-    client.query(SQL, [city]).then(result => {
-        if (result.rowCount > 0) {
-            response.send(result.rows);
-        } else {
-            const url = `https://api.weatherbit.io/v2.0/forecast/daily?city=${city}&country=US&key=${key}`;
-
-            superagent.get(url).then(res => {
-
-                const cityWeather = res.body.data;
-                // console.log(res.body.data);
-                cityWeather.forEach(item => {
-                    let values = [item.valid_date, item.weather.description];
-
-                    client.query(SQLInsertion, values);
-                });
-                client.query(SQL, [city]).then(data => {
-                    response.send(data.rows);
-                })
-            }).catch((err) => {
-                console.log("ERROR IN WEATHER API");
-                console.log(err)
-            })
-        }
-    });
-
+            const cityWeather = res.body.data;
+            // console.log(cityWeather);
+            cityWeather.forEach(item => {
+                resArr.push(item.valid_date, item.weather.description);
+            });
+            response.send(resArr);
+        }).catch((err) => {
+            console.log("ERROR IN WEATHER API");
+            console.log(err)
+        })
+};
 
 const parkResponse = {};
 function handlePark(request, response) {
-
-    const city = request.query.search_query;
+    let resArr = [];
+    const city = request.query.city;
+    console.log(request.query);
     let key = process.env.PARKS_API_KEY;
 
-    let SQL = 'SELECT * FROM Parks WHERE name=$1';
-    let SQLInsertion = 'INSERT INTO Parks (name,url,fee,descrition) VALUES($1, $2,$3,$4) RETURNING *';
 
-    client.query(SQL, [city]).then(result => {
-        if (result.rowCount > 0) {
-            response.send(result.rows);
-        } else {
-            const url = `https://developer.nps.gov/api/v1/parks?q=${city}&api_key=${key}&limit=10`;
+        const url = `https://developer.nps.gov/api/v1/parks?q=${city}&api_key=${key}&limit=10`;
 
-            superagent.get(url).then(res => {
-
-                const cityPark = res.body.data;
-                // console.log(cityPark);
-                cityPark.forEach(item => {
-                    let values = [item.fullName, item.url, item.fees, item.description];
-
-                    client.query(SQLInsertion, values);
-
-                })
-                client.query(SQL, [city]).then(data => {
-                    response.send(data.rows)
-                })
-            }).catch((err) => {
-                console.log("ERROR IN PARKS API");
-                console.log(err)
-            })
-        }
-    })
-}
-
+            const cityPark = res.body.data;
+            // console.log(cityPark);
+            cityPark.forEach(item => {
+                resArr.push(item.fullName, item.url, item.fees, item.description);
+            });
+            response.send(resArr)
+        }).catch((err) => {
+            console.log("ERROR IN PARKS API");
+            console.log(err)
+        })
 
 function handleMovies(request, response) {
     let key = process.env.MOVIE_API_KEY;
