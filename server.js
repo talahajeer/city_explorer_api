@@ -29,6 +29,7 @@ app.get('/', (request, response) => {
 app.get("/location", handleLocation);
 app.get("/weather", handleWeather);
 app.get("/parks", handlePark);
+app.get('/movies', handleMovies);
 app.use('*', notFoundHandler);
 // app.use(errorHandler);
 
@@ -49,6 +50,7 @@ const localLocations = {};
 function handleLocation(request, response) {
     const city = request.query.city;
     // console.log(city);
+
     let key = process.env.GEOCODE_API_KEY;
 
     let SQL = `SELECT * FROM location WHERE name='${city}';`;
@@ -113,10 +115,6 @@ function handleWeather(request, response) {
         })
 };
 
-
-
-
-
 const parkResponse = {};
 function handlePark(request, response) {
     let resArr = [];
@@ -126,8 +124,6 @@ function handlePark(request, response) {
 
 
         const url = `https://developer.nps.gov/api/v1/parks?q=${city}&api_key=${key}&limit=10`;
-
-        superagent.get(url).then(res => {
 
             const cityPark = res.body.data;
             // console.log(cityPark);
@@ -140,5 +136,39 @@ function handlePark(request, response) {
             console.log(err)
         })
 
+function handleMovies(request, response) {
+    let key = process.env.MOVIE_API_KEY;
+    const city = request.query.search_query;
+
+    let SQLInsertion = 'INSERT INTO movies (search_query,title,overview ,average_votes,total_votes,image_url,popularity,released_on) VALUES($1, $2, $3, $4, $5,$6,$7,$8) RETURNING *';
+    let SQL = 'SELECT * FROM movies WHERE search_query=$1';
+
+    const url = `https://api.themoviedb.org/3/search/movie?api_key=${key}&query=${city}`;
+    client.query(SQL, [city]).then(data => {
+        if (data.rowCount > 0) {
+            response.send(data.rows.slice(0, 20));
+        } else {
+            superagent.get(url).then(data => {
+                data.body.results.slice(0, 20).forEach(elem => {
+                    client.query(SQLInsertion, [city,
+                        elem.title,
+                        elem.overview,
+                        elem.vote_average,
+                        elem.vote_count,
+                        `https://image.tmdb.org/t/p/w500${elem.poster_path}`,
+                        elem.popularity,
+                        elem.release_date
+                    ]);
+                });
+                client.query(SQL, [city]).then(data => {
+                    response.send(data.rows);
+                });
+            }).catch((err) => {
+                console.log("ERROR IN PARKS API");
+                console.log(err)
+            })
+        }
+    });
 }
+
 
